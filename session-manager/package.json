@@ -1,0 +1,28 @@
+{
+  "name": "minist4ck-session-manager",
+  "version": "1.0.0",
+  "description": "MINIST4CK — session manager engine",
+  "main": "index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "express": "^4.19.2",
+    "mongoose": "^8.7.0",
+    "axios": "^1.7.7",
+    "pino": "^9.4.0",
+    "sharp": "^0.33.5",
+    "fluent-ffmpeg": "^2.1.3",
+    "qrcode-terminal": "^0.12.0",
+    "crypto-js": "^4.2.0",
+    "node-cache": "^5.1.2",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
