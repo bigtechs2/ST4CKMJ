@@ -9,6 +9,8 @@ import format from '../../../utils/format.js';
 
 const log = logger.child('cmd:ping');
 
+const SYM = brand.SYM;
+
 function bar(percent, size = 10) {
   const p = Math.max(0, Math.min(100, Number(percent) || 0));
   const filled = Math.round((p / 100) * size);
@@ -71,6 +73,16 @@ async function getThumbnail(sock) {
   }
 }
 
+function footerBlock() {
+  const url  = config.bot?.channelLink || config.links.whatsappChannel;
+  const text = config.msg.footer;
+
+  return [
+    `[View channel](${url})`,
+    text
+  ].join('\n');
+}
+
 export default {
   name: 'ping',
   aliases: ['p', 'speed', 'speedtest'],
@@ -89,20 +101,14 @@ export default {
   },
 
   code: async (ctx) => {
-    const {
-      sock,
-      msg,
-      chatId,
-      config: sessionCfg
-    } = ctx;
-
+    const { sock, msg, chatId, config: sessionCfg } = ctx;
     const prefix = sessionCfg?.prefix || config.prefixes.whatsappDefault;
 
     try {
       const t0 = performance.now();
 
       await sock.sendMessage(chatId, {
-        text: `${brand.SYM.info} Measuring performance...`
+        text: `${SYM.info} Measuring performance...`
       }, { quoted: msg });
 
       const responseTime = (performance.now() - t0).toFixed(0);
@@ -139,37 +145,37 @@ export default {
           brand:       'system monitor',
           price:       `${responseTime} ms`,
           sale_price:  pingBadge,
-          url:         config.bot?.channelLink || config.links.whatsappChannel,
+          url:         config.bot.channelLink,
           image:       thumbnail,
           icon:        thumbnail
         });
       } else {
         rich.addText(
-          `${brand.SYM.heart} *${brand.BOT_NAME}*\n` +
-          `${brand.SYM.arrow} system monitor\n` +
-          `${brand.SYM.arrow} ${responseTime} ms — ${pingBadge}`
+          `${SYM.heart} *${brand.BOT_NAME}*\n` +
+          `${SYM.arrow} system monitor\n` +
+          `${SYM.arrow} ${responseTime} ms — ${pingBadge}`
         );
       }
 
       rich.addText(
-        `${brand.SYM.diamond} *Latency*\n\n` +
-        `   ${brand.SYM.arrow} Response   ·  *${responseTime} ms*  —  ${pingBadge}\n` +
-        `   ${brand.SYM.arrow} API Ping   ·  ${apiLatency ? `*${apiLatency} ms*` : '—'}\n` +
-        `   ${brand.SYM.arrow} Bot Uptime ·  ${format.formatUptime(botUp)}`
+        `${SYM.diamond} *Latency*\n\n` +
+        `   ${SYM.arrow} Response   ·  *${responseTime} ms*  —  ${pingBadge}\n` +
+        `   ${SYM.arrow} API Ping   ·  ${apiLatency ? `*${apiLatency} ms*` : '—'}\n` +
+        `   ${SYM.arrow} Bot Uptime ·  ${format.formatUptime(botUp)}`
       );
 
       rich.addText(
-        `${brand.SYM.diamond} *Memory*\n\n` +
-        `   ${brand.SYM.arrow} Used  ·  *${fmtRam(usedRam)}* / ${fmtRam(totalRam)}\n` +
-        `   ${brand.SYM.arrow} Free  ·  ${fmtRam(freeRam)}\n` +
-        `   ${brand.SYM.arrow} Load  ·  \`${bar(ramPercent)}\`  ${ramPercent}%  —  ${ramBadge}`
+        `${SYM.diamond} *Memory*\n\n` +
+        `   ${SYM.arrow} Used  ·  *${fmtRam(usedRam)}* / ${fmtRam(totalRam)}\n` +
+        `   ${SYM.arrow} Free  ·  ${fmtRam(freeRam)}\n` +
+        `   ${SYM.arrow} Load  ·  \`${bar(ramPercent)}\`  ${ramPercent}%  —  ${ramBadge}`
       );
 
       rich.addText(
-        `${brand.SYM.diamond} *Processor*\n\n` +
-        `   ${brand.SYM.arrow} Model ·  ${cpuModel}\n` +
-        `   ${brand.SYM.arrow} Cores ·  ${cpuCores} @ ${cpuSpeed} MHz\n` +
-        `   ${brand.SYM.arrow} Load  ·  \`${bar(cpuLoad)}\`  ${cpuLoad}%  —  ${cpuBadge}`
+        `${SYM.diamond} *Processor*\n\n` +
+        `   ${SYM.arrow} Model ·  ${cpuModel}\n` +
+        `   ${SYM.arrow} Cores ·  ${cpuCores} @ ${cpuSpeed} MHz\n` +
+        `   ${SYM.arrow} Load  ·  \`${bar(cpuLoad)}\`  ${cpuLoad}%  —  ${cpuBadge}`
       );
 
       rich.addTip(
@@ -182,7 +188,7 @@ export default {
         `${prefix}donate`
       ]);
 
-      rich.setFooter(config.msg.footer);
+      rich.addText(footerBlock());
 
       await rich.send(chatId, { quoted: msg });
 
@@ -197,7 +203,7 @@ export default {
 
       try {
         await sock.sendMessage(chatId, {
-          text: `${brand.SYM.cross} Ping failed\n${brand.SYM.arrow} ${err.message.slice(0, 100)}`
+          text: `${SYM.cross} Ping failed\n${SYM.arrow} ${err.message.slice(0, 100)}`
         }, { quoted: msg });
       } catch {}
     }
