@@ -14,20 +14,57 @@ import {
 } from '../../shared/formatters.js';
 
 const SYM = brand.SYM;
-const FOOT = config.msg.footer;
 
-function ensureFooter(text, includeFooter = true) {
-  if (!includeFooter) return text;
-  if (!FOOT) return text;
-  if (String(text).includes(FOOT)) return text;
+function channelLink() {
+  return config.bot?.channelLink || config.links.whatsappChannel || '';
+}
 
-  return joinSpaced(text, FOOT);
+function footerText() {
+  return config.msg.footer || brand.FOOTER.whatsapp || '';
+}
+
+function buildFooterBlock() {
+  const url  = channelLink();
+  const text = footerText();
+
+  const parts = [];
+
+  if (url) {
+    parts.push(`[View channel](${url})`);
+  }
+
+  if (text) {
+    parts.push(text);
+  }
+
+  return parts.join('\n');
+}
+
+function ensureFooter(body, includeFooter = true) {
+  if (!includeFooter) return body;
+
+  const block = buildFooterBlock();
+  if (!block) return body;
+
+  const s = String(body);
+
+  if (s.includes('[View channel]') && s.includes(footerText())) {
+    return s;
+  }
+
+  return `${s}\n\n${block}`;
 }
 
 async function sendText(sock, jid, text, options = {}) {
   const body = ensureFooter(text, options.footer !== false);
 
-  return sock.sendMessage(jid, { text: body, ...options }, options.quoted ? { quoted: options.quoted } : {});
+  const sendOpts = { ...options };
+  delete sendOpts.footer;
+  delete sendOpts.quoted;
+
+  const finalOpts = options.quoted ? { quoted: options.quoted } : {};
+
+  return sock.sendMessage(jid, { text: body, ...sendOpts }, finalOpts);
 }
 
 async function sendReply(ctx, text, options = {}) {
@@ -199,9 +236,9 @@ async function live(sock, jid, { title = '', initial = '', footer = true } = {})
     return rich.sendEdit(jid);
   };
 
-  const finalize = async (footerText) => {
+  const finalize = async () => {
     if (footer !== false) {
-      rich.setFooter(FOOT);
+      rich.addText(buildFooterBlock());
     }
     return rich.sendEdit(jid);
   };
@@ -231,7 +268,7 @@ async function product(sock, jid, {
 } = {}) {
   const rich = new AIRich(sock).setTitle(brand.BOT_NAME);
 
-  const productData = {
+  rich.addProduct({
     title,
     brand:      brandName,
     price,
@@ -239,14 +276,12 @@ async function product(sock, jid, {
     url,
     image,
     icon
-  };
-
-  rich.addProduct(productData);
+  });
 
   if (body) {
     rich.addText(ensureFooter(body, footer));
-  } else {
-    rich.setFooter(FOOT);
+  } else if (footer) {
+    rich.addText(buildFooterBlock());
   }
 
   return rich.send(jid);
@@ -414,7 +449,10 @@ export {
   menu,
   helpCommand,
   raw,
-  ensureFooter
+  ensureFooter,
+  footerText,
+  channelLink,
+  buildFooterBlock
 };
 
 export default {
@@ -437,5 +475,9 @@ export default {
   paymentSuccess,
   menu,
   helpCommand,
-  raw
+  raw,
+  ensureFooter,
+  footerText,
+  channelLink,
+  buildFooterBlock
 };
