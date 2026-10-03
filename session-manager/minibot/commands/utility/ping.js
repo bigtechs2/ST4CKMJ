@@ -9,8 +9,6 @@ import format from '../../../utils/format.js';
 
 const log = logger.child('cmd:ping');
 
-const C = brand.COLOR;
-
 function bar(percent, size = 10) {
   const p = Math.max(0, Math.min(100, Number(percent) || 0));
   const filled = Math.round((p / 100) * size);
@@ -59,6 +57,20 @@ async function measureApiLatency() {
   }
 }
 
+async function getThumbnail(sock) {
+  const fallback = config.bot?.thumbnail || '';
+
+  try {
+    const botJid = sock.user?.id?.replace(/:\d+@/, '@') || '';
+    if (!botJid) return fallback;
+
+    const pp = await sock.profilePictureUrl(botJid, 'image');
+    return pp || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export default {
   name: 'ping',
   aliases: ['p', 'speed', 'speedtest'],
@@ -94,8 +106,7 @@ export default {
       }, { quoted: msg });
 
       const responseTime = (performance.now() - t0).toFixed(0);
-
-      const apiLatency = await measureApiLatency();
+      const apiLatency   = await measureApiLatency();
 
       const totalRam   = os.totalmem();
       const freeRam    = os.freemem();
@@ -118,18 +129,9 @@ export default {
       const ramBadge  = ramLabel(ramPercent);
       const cpuBadge  = cpuLabel(cpuLoad);
 
-      let thumbnail = '';
-      try {
-        const botJid = sock.user?.id?.replace(/:\d+@/, '@') || '';
-        if (botJid) {
-          thumbnail = await sock.profilePictureUrl(botJid, 'image');
-        }
-      } catch {
-        thumbnail = '';
-      }
+      const thumbnail = await getThumbnail(sock);
 
-      const rich = new AIRich(sock)
-        .setTitle(brand.BOT_NAME);
+      const rich = new AIRich(sock).setTitle(brand.BOT_NAME);
 
       if (thumbnail) {
         rich.addProduct({
@@ -137,37 +139,37 @@ export default {
           brand:       'system monitor',
           price:       `${responseTime} ms`,
           sale_price:  pingBadge,
-          url:         config.links.whatsappChannel,
+          url:         config.bot?.channelLink || config.links.whatsappChannel,
           image:       thumbnail,
           icon:        thumbnail
         });
       } else {
         rich.addText(
-          `♡ *${brand.BOT_NAME}*\n` +
-          `➩ system monitor\n` +
-          `➩ ${responseTime} ms — ${pingBadge}`
+          `${brand.SYM.heart} *${brand.BOT_NAME}*\n` +
+          `${brand.SYM.arrow} system monitor\n` +
+          `${brand.SYM.arrow} ${responseTime} ms — ${pingBadge}`
         );
       }
 
       rich.addText(
-        `◈ *Latency*\n\n` +
-        `   ➩ Response   ·  *${responseTime} ms*  —  ${pingBadge}\n` +
-        `   ➩ API Ping   ·  ${apiLatency ? `*${apiLatency} ms*` : '—'}\n` +
-        `   ➩ Bot Uptime ·  ${format.formatUptime(botUp)}`
+        `${brand.SYM.diamond} *Latency*\n\n` +
+        `   ${brand.SYM.arrow} Response   ·  *${responseTime} ms*  —  ${pingBadge}\n` +
+        `   ${brand.SYM.arrow} API Ping   ·  ${apiLatency ? `*${apiLatency} ms*` : '—'}\n` +
+        `   ${brand.SYM.arrow} Bot Uptime ·  ${format.formatUptime(botUp)}`
       );
 
       rich.addText(
-        `◈ *Memory*\n\n` +
-        `   ➩ Used  ·  *${fmtRam(usedRam)}* / ${fmtRam(totalRam)}\n` +
-        `   ➩ Free  ·  ${fmtRam(freeRam)}\n` +
-        `   ➩ Load  ·  \`${bar(ramPercent)}\`  ${ramPercent}%  —  ${ramBadge}`
+        `${brand.SYM.diamond} *Memory*\n\n` +
+        `   ${brand.SYM.arrow} Used  ·  *${fmtRam(usedRam)}* / ${fmtRam(totalRam)}\n` +
+        `   ${brand.SYM.arrow} Free  ·  ${fmtRam(freeRam)}\n` +
+        `   ${brand.SYM.arrow} Load  ·  \`${bar(ramPercent)}\`  ${ramPercent}%  —  ${ramBadge}`
       );
 
       rich.addText(
-        `◈ *Processor*\n\n` +
-        `   ➩ Model ·  ${cpuModel}\n` +
-        `   ➩ Cores ·  ${cpuCores} @ ${cpuSpeed} MHz\n` +
-        `   ➩ Load  ·  \`${bar(cpuLoad)}\`  ${cpuLoad}%  —  ${cpuBadge}`
+        `${brand.SYM.diamond} *Processor*\n\n` +
+        `   ${brand.SYM.arrow} Model ·  ${cpuModel}\n` +
+        `   ${brand.SYM.arrow} Cores ·  ${cpuCores} @ ${cpuSpeed} MHz\n` +
+        `   ${brand.SYM.arrow} Load  ·  \`${bar(cpuLoad)}\`  ${cpuLoad}%  —  ${cpuBadge}`
       );
 
       rich.addTip(
