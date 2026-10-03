@@ -6,6 +6,14 @@ module.exports = {
 
   brand,
 
+  bot: {
+    thumbnail: 'https://yourdomain.com/assets/logo.png',
+    groupLink: 'https://chat.whatsapp.com/xxxxx',
+    channelLink: 'https://whatsapp.com/channel/0029Vb8VpyiK0IBkFiIslc0Y',
+    defaultBio: 'MINIST4CK — automation that just works',
+    defaultStatus: '⟡ MINIST4CK'
+},
+
   owners: {
     telegram: ['8594354663'],
     telegramUsername: 'bigmanj09',
