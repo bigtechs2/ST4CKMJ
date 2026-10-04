@@ -140,6 +140,26 @@ const endpoints = {
     }
   ],
 
+  video: [
+    {
+      name:    'dc-txt2vid',
+      url:     'https://apis.davidcyriltech.my.id/ai/txt2vid',
+      method:  'post',
+      shape:   'dc-video',
+      headers: { 'X-API-Key': DC_KEY },
+      timeout: 120000,
+      enabled: true
+    },
+    {
+      name:    'nexray-video',
+      url:     'https://api.nexray.eu.cc/ai/video',
+      method:  'post',
+      shape:   'nexray-video',
+      timeout: 120000,
+      enabled: false
+    }
+  ],
+
   vision: [
     {
       name:    'dc-vision',
@@ -171,24 +191,6 @@ const endpoints = {
       enabled: true
     }
   ],
-
-video: [
-  {
-    name:    'dc-txt2vid',
-    url:     'https://apis.davidcyriltech.my.id/ai/txt2vid',
-    method:  'post',
-    headers: { 'X-API-Key': DC_KEY },
-    timeout: 120000,
-    enabled: true
-  },
-  {
-    name:    'nexray-video',
-    url:     'https://api.nexray.eu.cc/ai/video',
-    method:  'post',
-    timeout: 120000,
-    enabled: false
-  }
-],
 
   stt: [
     {
@@ -277,6 +279,24 @@ const shapes = {
     data?.result?.url ||
     data?.image ||
     data?.url ||
+    data?.data?.[0]?.url ||
+    (typeof data === 'string' ? data : null),
+
+  'dc-video': (data) =>
+    data?.result?.url ||
+    data?.result?.video ||
+    data?.result ||
+    data?.url ||
+    data?.video ||
+    data?.data?.url ||
+    (typeof data === 'string' ? data : null),
+
+  'nexray-video': (data) =>
+    data?.result?.url ||
+    data?.result?.video ||
+    data?.result ||
+    data?.url ||
+    data?.video ||
     data?.data?.[0]?.url ||
     (typeof data === 'string' ? data : null),
 
@@ -391,10 +411,11 @@ function stats() {
   return {
     chat:   count('chat'),
     image:  count('image'),
+    video:  count('video'),
     vision: count('vision'),
     tts:    count('tts'),
     stt:    count('stt'),
-    total:  ['chat', 'image', 'vision', 'tts', 'stt']
+    total:  ['chat', 'image', 'video', 'vision', 'tts', 'stt']
       .reduce((sum, k) => sum + count(k), 0)
   };
 }
