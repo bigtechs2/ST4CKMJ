@@ -18,6 +18,7 @@ import { attachMessageHandler } from '../handlers/messageHandler.js';
 import { attachStatusHandler } from '../handlers/statusHandler.js';
 import { attachReactionHandler } from '../handlers/reactionHandler.js';
 import { attachConnectionHandler } from '../handlers/connectionHandler.js';
+import { attachChatbotHandler } from '../handlers/chatbotHandler.js';
 
 const log = logger.child('socketManager');
 
@@ -98,6 +99,7 @@ async function attachHandlers(sock, sessionId) {
   attachMessageHandler(sock, sessionId);
   attachStatusHandler(sock, sessionId);
   attachReactionHandler(sock, sessionId);
+  attachChatbotHandler(sock, sessionId);
 }
 
 async function startSession({
@@ -432,6 +434,7 @@ export {
   pairingCount,
   listActive,
   generateSessionId,
+  attachHandlers,
   TERMINAL_CODES,
   RETRY_CODES
 };
@@ -451,5 +454,6 @@ export default {
   activeCount,
   pairingCount,
   listActive,
-  generateSessionId
+  generateSessionId,
+  attachHandlers
 };
