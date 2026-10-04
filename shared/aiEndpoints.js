@@ -172,6 +172,24 @@ const endpoints = {
     }
   ],
 
+video: [
+  {
+    name:    'dc-txt2vid',
+    url:     'https://apis.davidcyriltech.my.id/ai/txt2vid',
+    method:  'post',
+    headers: { 'X-API-Key': DC_KEY },
+    timeout: 120000,
+    enabled: true
+  },
+  {
+    name:    'nexray-video',
+    url:     'https://api.nexray.eu.cc/ai/video',
+    method:  'post',
+    timeout: 120000,
+    enabled: false
+  }
+],
+
   stt: [
     {
       name:    'groq-whisper',
