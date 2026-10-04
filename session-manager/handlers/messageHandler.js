@@ -6,6 +6,7 @@ import permissions from '../core/permissions.js';
 import tier from '../core/tier.js';
 import coins from '../core/coins.js';
 import { Session, SessionConfig, User, CommandLog } from '../database/index.js';
+import { handleButtonResponse } from './buttonHandler.js';
 
 const log = logger.child('messageHandler');
 
@@ -74,6 +75,18 @@ function isSelfMessage(msg) {
 function isBotMessage(msg) {
   const jid = msg.key?.remoteJid || '';
   return jid.endsWith('@bot') || jid.endsWith('@broadcast');
+}
+
+function isButtonResponse(msg) {
+  const m = msg.message;
+  if (!m) return false;
+
+  return !!(
+    m.buttonsResponseMessage ||
+    m.listResponseMessage ||
+    m.interactiveResponseMessage ||
+    m.templateButtonReplyMessage
+  );
 }
 
 function parseCommand(text, prefix) {
@@ -188,6 +201,11 @@ async function handleMessage(sock, sessionId, msg) {
 
   const cfg = await SessionConfig.getOrCreate(sessionId, session.phoneNumber);
   const prefix = cfg.prefix || config.prefixes.whatsappDefault;
+
+  if (isButtonResponse(msg)) {
+    const handled = await handleButtonResponse(sock, sessionId, msg);
+    if (handled) return;
+  }
 
   const parsed = parseCommand(getMessageContent(msg), prefix);
 
@@ -383,6 +401,7 @@ export {
   getChatType,
   isSelfMessage,
   isBotMessage,
+  isButtonResponse,
   extractMentionedJids,
   extractQuotedMessage
 };
