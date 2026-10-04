@@ -22,9 +22,9 @@ const SessionConfigSchema = new Schema({
   },
 
   prefix: {
-    type:    String,
-    default: '!',
-    trim:    true,
+    type:      String,
+    default:   '!',
+    trim:      true,
     maxlength: 3
   },
 
@@ -103,11 +103,6 @@ const SessionConfigSchema = new Schema({
     default: false
   },
 
-  chatbot: {
-    type:    Boolean,
-    default: false
-  },
-
   ghostMode: {
     type:    Boolean,
     default: false
@@ -141,6 +136,58 @@ const SessionConfigSchema = new Schema({
   privateMode: {
     type:    Boolean,
     default: true
+  },
+
+  chatbot: {
+    type:    Boolean,
+    default: false
+  },
+
+  chatbotPrivate: {
+    type:    Boolean,
+    default: false
+  },
+
+  chatbotGroup: {
+    type:    Boolean,
+    default: false
+  },
+
+  chatbotVoiceReply: {
+    type:    Boolean,
+    default: false
+  },
+
+  chatbotImageGen: {
+    type:    Boolean,
+    default: true
+  },
+
+  chatbotTranscribe: {
+    type:    Boolean,
+    default: true
+  },
+
+  chatbotLanguage: {
+    type:    String,
+    enum:    ['auto', 'sw', 'en'],
+    default: 'auto'
+  },
+
+  chatbotModel: {
+    type:    String,
+    default: ''
+  },
+
+  chatbotPrompt: {
+    type:      String,
+    default:   '',
+    maxlength: 500
+  },
+
+  chatbotBlacklist: {
+    type:    [String],
+    default: []
   },
 
   statusReplyText: {
@@ -296,6 +343,7 @@ const SessionConfigSchema = new Schema({
 
 SessionConfigSchema.index({ phoneNumber: 1 });
 SessionConfigSchema.index({ prefix: 1 });
+SessionConfigSchema.index({ chatbotPrivate: 1, chatbotGroup: 1 });
 
 SessionConfigSchema.statics.findBySessionId = function (sessionId) {
   return this.findOne({ sessionId });
@@ -336,6 +384,17 @@ SessionConfigSchema.methods.toggleFeature = function (key, value) {
 SessionConfigSchema.methods.setEmojis = function (emojis) {
   if (!Array.isArray(emojis) || !emojis.length) return this;
   this.reactEmojis = emojis.slice(0, 10);
+  return this.save();
+};
+
+SessionConfigSchema.methods.setChatbotMode = function ({ privateMode, groupMode, voiceReply, imageGen, language }) {
+  if (typeof privateMode  === 'boolean') this.chatbotPrivate    = privateMode;
+  if (typeof groupMode    === 'boolean') this.chatbotGroup      = groupMode;
+  if (typeof voiceReply   === 'boolean') this.chatbotVoiceReply = voiceReply;
+  if (typeof imageGen     === 'boolean') this.chatbotImageGen   = imageGen;
+  if (typeof language     === 'string' && ['auto', 'sw', 'en'].includes(language)) {
+    this.chatbotLanguage = language;
+  }
   return this.save();
 };
 
