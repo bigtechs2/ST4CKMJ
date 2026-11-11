@@ -11,8 +11,16 @@ module.exports = {
     groupLink: 'https://chat.whatsapp.com/xxxxx',
     channelLink: 'https://whatsapp.com/channel/0029Vb8VpyiK0IBkFiIslc0Y',
     defaultBio: 'MINIST4CK — automation that just works',
-    defaultStatus: '⟡ MINIST4CK'
-},
+    defaultStatus: '⟡ MINIST4CK',
+
+    catalogTitle:       '⟡ MINIST4CK Premium',
+    catalogDescription: 'by bigmanjtech™',
+    catalogCurrency:    'TZS',
+    catalogPrice:       500,
+    catalogRetailerId:  'MINIST4CK',
+    catalogImage:       'https://yourdomain.com/assets/catalog.jpg',
+    catalogAudio:       'https://yourdomain.com/assets/catalog.mp3'
+  },
 
   owners: {
     telegram: ['8594354663'],
@@ -92,7 +100,8 @@ module.exports = {
     autoReconnect:         true,
     keepCommandLogs:       true,
     allowSignup:           true,
-    allowMultipleSessions: true
+    allowMultipleSessions: true,
+    socialChatbot:         true
   },
 
   sessions: {
@@ -274,16 +283,24 @@ module.exports = {
       'customwelcome',
       'resetbot'
     ],
+
     automation: [
       'autoreply',
       'autosticker',
       'autovoice',
+      'autotyping',
+      'autorecording',
+      'autoviewstatus',
+      'autolistatus',
+      'autoread',
       'chatbot',
+      'socialchatbot',
       'schedulemsg',
       'autoresponder',
       'keywordreply',
       'statuscustom'
     ],
+
     power: [
       'analytics',
       'backup',
@@ -418,6 +435,7 @@ module.exports = {
 
   categories: {
     'main':         { symbol: '⟡', label: 'Main' },
+    'automation':   { symbol: '⌁', label: 'Automation' },
     'ai-chart':     { symbol: '✦', label: 'AI Chart' },
     'ai-generator': { symbol: '✧', label: 'AI Generator' },
     'converter':    { symbol: '⇄', label: 'Converter' },
@@ -437,6 +455,7 @@ module.exports = {
 
   categoryOrder: [
     'main',
+    'automation',
     'downloader',
     'search',
     'information',
