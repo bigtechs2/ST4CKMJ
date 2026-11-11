@@ -1,249 +1,277 @@
 import config from '../config.js';
 import brand from '../../shared/brand.js';
 import logger from '../../shared/logger.js';
-import { AIRich } from '../lib/NIXCODE.js';
 import { SessionConfig } from '../database/index.js';
 
 const log = logger.child('presence');
 
-const SYM = brand.SYM;
+const typingLoops    = new Map();   // chatId → { running, timer, cycles }
+const recordingLoops = new Map();
+const readTimers     = new Map();
 
-const WINDOW_MS          = 15000;
-const TYPING_LIMIT       = 12;
-const RECORDING_LIMIT    = 8;
-const ONLINE_TOGGLE_LIMIT= 10;
-const MAX_TRACK          = 5000;
-const COOLDOWN_MS        = 30000;
+const MAX_AUTOREAD_TRACK = 5000;
 
-const typingTracker    = new Map();
-const recordingTracker = new Map();
-const onlineTracker    = new Map();
-const lastActionAt     = new Map();
-
-const metadataCache = new Map();
-const METADATA_TTL  = 60000;
-
-function key(chatId, jid) {
-  return `${chatId}:${jid}`;
+function randomBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function recordHit(map, chatId, jid) {
-  const k = key(chatId, jid);
-  const now = Date.now();
-  const arr = map.get(k) || [];
-  const recent = arr.filter((t) => now - t < WINDOW_MS);
-  recent.push(now);
-  map.set(k, recent);
-
-  if (map.size > MAX_TRACK) {
-    const first = map.keys().next().value;
-    map.delete(first);
-  }
-
-  return recent.length;
+function normalizeNumber(jid) {
+  return String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, '');
 }
 
-function isOnCooldown(chatId, jid) {
-  const k = key(chatId, jid);
-  const last = lastActionAt.get(k) || 0;
-  return Date.now() - last < COOLDOWN_MS;
+function isGroupChat(chatId) {
+  return String(chatId || '').endsWith('@g.us');
 }
 
-function markAction(chatId, jid) {
-  lastActionAt.set(key(chatId, jid), Date.now());
-
-  if (lastActionAt.size > MAX_TRACK) {
-    const first = lastActionAt.keys().next().value;
-    lastActionAt.delete(first);
-  }
+function isStatusOrBroadcast(chatId) {
+  if (!chatId) return true;
+  if (chatId === 'status@broadcast') return true;
+  if (chatId.endsWith('@broadcast')) return true;
+  if (chatId.endsWith('@newsletter')) return true;
+  return false;
 }
 
-async function getGroupMetadata(sock, chatId) {
-  const cached = metadataCache.get(chatId);
-  if (cached && Date.now() - cached.at < METADATA_TTL) return cached.data;
-
-  try {
-    const data = await sock.groupMetadata(chatId);
-    metadataCache.set(chatId, { data, at: Date.now() });
-    return data;
-  } catch {
-    return null;
-  }
+function isSelfMessage(msg) {
+  return msg.key?.fromMe === true;
 }
 
-function invalidateMetadata(chatId) {
-  metadataCache.delete(chatId);
+function stopTypingLoop(chatId) {
+  const loop = typingLoops.get(chatId);
+  if (!loop) return;
+
+  if (loop.timer) clearTimeout(loop.timer);
+  typingLoops.delete(chatId);
 }
 
-function isSuperOwner(number) {
-  const clean = String(number || '').replace(/\D/g, '');
-  if (!clean) return false;
+function stopRecordingLoop(chatId) {
+  const loop = recordingLoops.get(chatId);
+  if (!loop) return;
 
-  const main = String(config.owners.whatsapp.id || '').replace(/\D/g, '');
-  if (main && clean === main) return true;
-
-  return (config.owners.whatsapp.co || []).some(
-    (co) => String(co.id || '').replace(/\D/g, '') === clean
-  );
+  if (loop.timer) clearTimeout(loop.timer);
+  recordingLoops.delete(chatId);
 }
 
-function isAdminInGroup(metadata, jid) {
-  if (!metadata?.participants) return false;
-  const me = metadata.participants.find((p) => p.id === jid);
-  if (!me) return false;
-  return me.admin === 'admin' || me.admin === 'superadmin';
-}
+function startTypingLoop(sock, sessionId, chatId, cfg) {
+  if (typingLoops.has(chatId)) return;
 
-async function sendWarn(sock, chatId, senderJid, senderNumber, reason) {
-  try {
-    const rich = new AIRich(sock).setTitle(brand.BOT_NAME);
+  const timings = config.automation.typing;
+  const maxChats = timings.maxConcurrentChats || 5;
 
-    rich.addText(
-      `${SYM.timer} *Presence Warning*\n\n` +
-      `${SYM.arrow} @${senderNumber}\n` +
-      `${SYM.arrow} reason · ${reason}\n\n` +
-      `${SYM.info} stop or you will be removed`,
-      { id: 'warn' }
-    );
-
-    rich.addText(`[View channel](${config.bot.channelLink || config.links.whatsappChannel})`);
-    rich.setFooter(config.msg.footer);
-
-    await rich.send(chatId, { mentions: [senderJid] });
-  } catch (err) {
-    log.warn(`warn send failed: ${err.message}`);
-  }
-}
-
-async function kickUser(sock, chatId, senderJid) {
-  try {
-    await sock.groupParticipantsUpdate(chatId, [senderJid], 'remove');
-    invalidateMetadata(chatId);
-  } catch (err) {
-    log.warn(`kick failed: ${err.message}`);
-  }
-}
-
-async function applyPresenceAction(sock, sessionId, chatId, senderJid, cfg, reason) {
-  const mode = cfg.antispamMode || (cfg.antispam ? 'delete' : 'off');
-  if (mode === 'off') return;
-  if (isOnCooldown(chatId, senderJid)) return;
-
-  const senderNumber = senderJid.split('@')[0].split(':')[0].replace(/\D/g, '');
-
-  markAction(chatId, senderJid);
-
-  if (mode === 'delete') {
-    log.event('presence.spam.silent', { sessionId, chatId, sender: senderNumber, reason });
+  if (typingLoops.size >= maxChats) {
+    log.debug(`typing limit reached (${maxChats}) — skipping ${chatId}`);
     return;
   }
 
-  await sendWarn(sock, chatId, senderJid, senderNumber, reason);
+  const state = { timer: null, cycles: 0, running: true };
+  typingLoops.set(chatId, state);
 
-  if (mode === 'kick') {
-    await kickUser(sock, chatId, senderJid);
+  const cycle = async () => {
+    if (!state.running) return;
+
+    const currentCfg = await SessionConfig.findBySessionId(sessionId);
+
+    if (!currentCfg || !currentCfg.autoTyping) {
+      stopTypingLoop(chatId);
+      return;
+    }
+
+    try {
+      await sock.sendPresenceUpdate('composing', chatId);
+    } catch (err) {
+      log.debug(`composing failed for ${chatId}: ${err.message}`);
+      stopTypingLoop(chatId);
+      return;
+    }
+
+    const duration = randomBetween(timings.composingMinMs, timings.composingMaxMs);
+    state.cycles += 1;
+
+    state.timer = setTimeout(async () => {
+      if (!state.running) return;
+
+      try {
+        await sock.sendPresenceUpdate('paused', chatId);
+      } catch {}
+
+      const pause = randomBetween(timings.pausedMinMs, timings.pausedMaxMs);
+
+      state.timer = setTimeout(() => {
+        if (!state.running) return;
+        cycle();
+      }, pause + (timings.cycleDelayMs || 0));
+    }, duration);
+  };
+
+  cycle();
+}
+
+function startRecordingLoop(sock, sessionId, chatId, cfg) {
+  if (recordingLoops.has(chatId)) return;
+
+  const timings = config.automation.recording;
+  const maxChats = timings.maxConcurrentChats || 3;
+
+  if (recordingLoops.size >= maxChats) {
+    log.debug(`recording limit reached (${maxChats}) — skipping ${chatId}`);
+    return;
   }
 
-  try {
-    await SessionConfig.updateOne(
-      { sessionId },
-      { $inc: { 'stats.antispamTriggers': 1 } }
-    );
-  } catch {}
+  const state = { timer: null, cycles: 0, running: true };
+  recordingLoops.set(chatId, state);
 
-  log.event('presence.spam', { sessionId, chatId, sender: senderNumber, mode, reason });
-}
+  const cycle = async () => {
+    if (!state.running) return;
 
-function getPresenceFeatures(cfg) {
-  const sp = cfg.antispamFeatures || {};
+    const currentCfg = await SessionConfig.findBySessionId(sessionId);
 
-  return {
-    typing:    sp.typing    !== false,
-    recording: sp.recording !== false,
-    online:    sp.online    !== false
+    if (!currentCfg || !currentCfg.autoRecording) {
+      stopRecordingLoop(chatId);
+      return;
+    }
+
+    try {
+      await sock.sendPresenceUpdate('recording', chatId);
+    } catch (err) {
+      log.debug(`recording failed for ${chatId}: ${err.message}`);
+      stopRecordingLoop(chatId);
+      return;
+    }
+
+    const duration = randomBetween(timings.recordingMinMs, timings.recordingMaxMs);
+    state.cycles += 1;
+
+    state.timer = setTimeout(async () => {
+      if (!state.running) return;
+
+      try {
+        await sock.sendPresenceUpdate('paused', chatId);
+      } catch {}
+
+      const pause = randomBetween(timings.pausedMinMs, timings.pausedMaxMs);
+
+      state.timer = setTimeout(() => {
+        if (!state.running) return;
+        cycle();
+      }, pause + (timings.cycleDelayMs || 0));
+    }, duration);
   };
+
+  cycle();
 }
 
-async function handlePresence(sock, sessionId, { id: chatId, presences }) {
-  if (!chatId || !chatId.endsWith('@g.us')) return;
-  if (!presences || typeof presences !== 'object') return;
+async function handleAutoRead(sock, sessionId, msg) {
+  if (isSelfMessage(msg)) return;
+  if (!msg.key?.id) return;
+
+  const chatId = msg.key?.remoteJid || '';
+  if (!chatId) return;
+  if (isStatusOrBroadcast(chatId)) return;
 
   const cfg = await SessionConfig.findBySessionId(sessionId);
   if (!cfg) return;
+  if (cfg.autoRead !== true) return;
 
-  const mode = cfg.antispamMode || (cfg.antispam ? 'delete' : 'off');
-  if (mode === 'off') return;
+  const delay = config.automation.read.readDelayMs || 1500;
 
-  const enabled = getPresenceFeatures(cfg);
+  const key = `${sessionId}:${msg.key.id}`;
 
-  if (!enabled.typing && !enabled.recording && !enabled.online) return;
+  if (readTimers.has(key)) return;
 
-  const metadata = await getGroupMetadata(sock, chatId);
+  const timer = setTimeout(async () => {
+    readTimers.delete(key);
 
-  for (const [jid, data] of Object.entries(presences)) {
-    if (!jid || !data) continue;
-
-    const senderNumber = jid.split('@')[0].split(':')[0].replace(/\D/g, '');
-    if (!senderNumber) continue;
-    if (isSuperOwner(senderNumber)) continue;
-    if (metadata && isAdminInGroup(metadata, jid)) continue;
-
-    const presence = data.lastKnownPresence;
-
-    if (enabled.typing && presence === 'composing') {
-      const hits = recordHit(typingTracker, chatId, jid);
-      if (hits > TYPING_LIMIT) {
-        await applyPresenceAction(sock, sessionId, chatId, jid, cfg, 'typing flood');
-      }
+    try {
+      await sock.readMessages([msg.key]);
+      log.debug(`auto-read ${msg.key.id}`);
+    } catch (err) {
+      log.debug(`auto-read failed: ${err.message}`);
     }
+  }, delay);
 
-    if (enabled.recording && presence === 'recording') {
-      const hits = recordHit(recordingTracker, chatId, jid);
-      if (hits > RECORDING_LIMIT) {
-        await applyPresenceAction(sock, sessionId, chatId, jid, cfg, 'recording flood');
-      }
-    }
+  readTimers.set(key, timer);
 
-    if (enabled.online && presence === 'available') {
-      const hits = recordHit(onlineTracker, chatId, jid);
-      if (hits > ONLINE_TOGGLE_LIMIT) {
-        await applyPresenceAction(sock, sessionId, chatId, jid, cfg, 'online toggling');
-      }
-    }
+  if (readTimers.size > MAX_AUTOREAD_TRACK) {
+    const first = readTimers.keys().next().value;
+    clearTimeout(readTimers.get(first));
+    readTimers.delete(first);
   }
 }
 
 function attachPresenceHandler(sock, sessionId) {
-  sock.ev.on('presence.update', async (payload) => {
-    try {
-      await handlePresence(sock, sessionId, payload);
-    } catch (err) {
-      log.error(`presence crashed for ${sessionId}: ${err.message}`);
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (type !== 'notify') return;
+
+    const cfg = await SessionConfig.findBySessionId(sessionId);
+    if (!cfg) return;
+
+    for (const msg of messages) {
+      if (isSelfMessage(msg)) continue;
+
+      const chatId = msg.key?.remoteJid || '';
+      if (!chatId) continue;
+      if (isStatusOrBroadcast(chatId)) continue;
+
+      try {
+        if (cfg.autoRead === true) {
+          await handleAutoRead(sock, sessionId, msg);
+        }
+
+        if (cfg.autoTyping === true) {
+          if (!typingLoops.has(chatId)) {
+            startTypingLoop(sock, sessionId, chatId, cfg);
+          }
+        } else {
+          stopTypingLoop(chatId);
+        }
+
+        if (cfg.autoRecording === true) {
+          if (!recordingLoops.has(chatId)) {
+            startRecordingLoop(sock, sessionId, chatId, cfg);
+          }
+        } else {
+          stopRecordingLoop(chatId);
+        }
+      } catch (err) {
+        log.debug(`presence cycle failed: ${err.message}`);
+      }
     }
   });
 
   log.debug(`Presence handler attached to ${sessionId}`);
 }
 
-function cleanup() {
-  typingTracker.clear();
-  recordingTracker.clear();
-  onlineTracker.clear();
-  lastActionAt.clear();
-  metadataCache.clear();
+function stopAllForChat(chatId) {
+  stopTypingLoop(chatId);
+  stopRecordingLoop(chatId);
+}
+
+function stopAll() {
+  for (const chatId of typingLoops.keys()) stopTypingLoop(chatId);
+  for (const chatId of recordingLoops.keys()) stopRecordingLoop(chatId);
+  for (const timer of readTimers.values()) clearTimeout(timer);
+  readTimers.clear();
+}
+
+function stats() {
+  return {
+    typingChats:    typingLoops.size,
+    recordingChats: recordingLoops.size,
+    pendingReads:   readTimers.size
+  };
 }
 
 export {
   attachPresenceHandler,
-  handlePresence,
-  cleanup,
-  TYPING_LIMIT,
-  RECORDING_LIMIT,
-  ONLINE_TOGGLE_LIMIT,
-  WINDOW_MS
+  handleAutoRead,
+  startTypingLoop,
+  startRecordingLoop,
+  stopTypingLoop,
+  stopRecordingLoop,
+  stopAllForChat,
+  stopAll,
+  stats
 };
 
 export default {
-  attachPresenceHandler,
-  handlePresence
+  attachPresenceHandler
 };
