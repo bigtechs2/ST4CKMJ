@@ -63,6 +63,32 @@ module.exports = {
     canUseOwnerCommands:  true
   },
 
+  automation: {
+    typing: {
+      enabled:            false,
+      composingMinMs:     4000,
+      composingMaxMs:     9000,
+      pausedMinMs:        3000,
+      pausedMaxMs:        7000,
+      cycleDelayMs:       2000,
+      maxConcurrentChats: 5
+    },
+    recording: {
+      enabled:            false,
+      recordingMinMs:     6000,
+      recordingMaxMs:     15000,
+      pausedMinMs:        4000,
+      pausedMaxMs:        8000,
+      cycleDelayMs:       2000,
+      maxConcurrentChats: 3
+    },
+    read: {
+      enabled:            false,
+      readDelayMs:        1500,
+      maxConcurrentChats: 10
+    }
+  },
+
   links: {
     website:            'https://yourdomain.com',
     adminPanel:         'https://admin.yourdomain.com',
@@ -159,7 +185,6 @@ module.exports = {
       canKillSessions:   true,
       maxSessions:       -1
     },
-
     sessionOwner: {
       source:            'pair',
       bypassCoins:       false,
@@ -179,7 +204,6 @@ module.exports = {
       canKillSessions:   false,
       maxSessions:       -1
     },
-
     premiumUser: {
       source:            'grant',
       bypassCoins:       true,
@@ -192,7 +216,6 @@ module.exports = {
       canAccessAdmin:    false,
       maxSessions:       -1
     },
-
     freeUser: {
       source:            'default',
       bypassCoins:       false,
@@ -213,20 +236,10 @@ module.exports = {
     startingBalance: 50,
     dailyBonus:      10,
     referralBonus:   25,
-
     cost: {
-      'play':        5,
-      'song':        5,
-      'video':       8,
-      'insta':       5,
-      'tiktok':      5,
-      'ai-generate': 10,
-      'imagine':     10,
-      'sticker':     2,
-      'translate':   3,
-      'tts':         4
+      'play':        5, 'song': 5, 'video': 8, 'insta': 5, 'tiktok': 5,
+      'ai-generate': 10, 'imagine': 10, 'sticker': 2, 'translate': 3, 'tts': 4
     },
-
     freeCommands: [
       'ping', 'menu', 'help', 'uptime', 'profile',
       'id', 'owner', 'welcome', 'setprefix', 'prefix',
@@ -240,7 +253,6 @@ module.exports = {
     premiumPrice:        500,
     premiumDurationDays: 30,
     timeoutMinutes:      5,
-
     providers: {
       sonicpesa: {
         enabled:     true,
@@ -251,185 +263,69 @@ module.exports = {
         timeoutMs:   45000,
         webhookPath: '/api/payment/webhook'
       },
-
-      telegram: {
-        enabled:     true,
-        botUrl:      'https://t.me/yourpaymentbot',
-        ownerHandle: 'https://t.me/bigmanj09'
-      },
-
-      manual: {
-        enabled:  true,
-        whatsapp: 'https://wa.me/255777580820',
-        telegram: 'https://t.me/bigmanj09'
-      }
+      telegram: { enabled: true, botUrl: 'https://t.me/yourpaymentbot', ownerHandle: 'https://t.me/bigmanj09' },
+      manual:   { enabled: true, whatsapp: 'https://wa.me/255777580820', telegram: 'https://t.me/bigmanj09' }
     },
-
-    notifications: {
-      telegramOwnerId: '8594354663',
-      notifyOnPayment: true,
-      notifyOnPair:    false,
-      notifyOnFail:    true
-    }
+    notifications: { telegramOwnerId: '8594354663', notifyOnPayment: true, notifyOnPair: false, notifyOnFail: true }
   },
 
   premiumFeatures: {
-    botPersonalization: [
-      'setbotname',
-      'setbotpic',
-      'setbotabout',
-      'setbotstatus',
-      'custommenu',
-      'customwelcome',
-      'resetbot'
-    ],
-
-    automation: [
-      'autoreply',
-      'autosticker',
-      'autovoice',
-      'autotyping',
-      'autorecording',
-      'autoviewstatus',
-      'autolistatus',
-      'autoread',
-      'chatbot',
-      'socialchatbot',
-      'schedulemsg',
-      'autoresponder',
-      'keywordreply',
-      'statuscustom'
-    ],
-
-    power: [
-      'analytics',
-      'backup',
-      'restore',
-      'ghostmode',
-      'invisibleread',
-      'typingindicator',
-      'recordingindicator',
-      'priorityqueue'
-    ]
+    botPersonalization: ['setbotname','setbotpic','setbotabout','setbotstatus','custommenu','customwelcome','resetbot'],
+    automation: ['autoreply','autosticker','autovoice','autotyping','autorecording','autoviewstatus','autolistatus','autoread','chatbot','socialchatbot','schedulemsg','autoresponder','keywordreply','statuscustom'],
+    power: ['analytics','backup','restore','ghostmode','invisibleread','typingindicator','recordingindicator','priorityqueue']
   },
 
   auth: {
-    passwordMinLength:    8,
-    requireUppercase:     true,
-    requireLowercase:     true,
-    requireNumber:        true,
-    requireSymbol:        false,
-    bcryptRounds:         10,
-    sessionLifetimeHours: 24,
-    allowDuplicateNames:  true,
-    usernameMinLength:    3,
-    usernameMaxLength:    20,
-    telegramPrefix:       'tg_'
+    passwordMinLength: 8, requireUppercase: true, requireLowercase: true,
+    requireNumber: true, requireSymbol: false, bcryptRounds: 10,
+    sessionLifetimeHours: 24, allowDuplicateNames: true,
+    usernameMinLength: 3, usernameMaxLength: 20, telegramPrefix: 'tg_'
   },
 
-  msg: {
-    footer: '© MINIST4CK by bigmanjtech™'
-  },
+  msg: { footer: '© MINIST4CK by bigmanjtech™' },
 
   messages: {
     forceJoin: {
-      telegram:
-        '⟡ Join our channel and group to use MINIST4CK.\n' +
-        '➩ Channel: {channel}\n' +
-        '➩ Group: {group}\n\n' +
-        'Tap the buttons below, then press Verify.'
+      telegram: '⟡ Join our channel and group to use MINIST4CK.\n➩ Channel: {channel}\n➩ Group: {group}\n\nTap the buttons below, then press Verify.'
     },
     pairing: {
-      success:
-        '♡ Paired successfully.\n' +
-        '➩ Number: {number}\n' +
-        '➩ Session: active',
-      expired:
-        '⏱ Pairing code expired.\n' +
-        '➩ Tap below to get a new one.',
-      invalid:
-        '✗ Invalid number.\n' +
-        '➩ Include country code, digits only.',
-      already:
-        '⟡ This number is already paired.\n' +
-        '➩ Use delpair first to replace it.',
-      cooldown:
-        '⏱ Please wait {seconds}s before requesting a new code.'
+      success: '♡ Paired successfully.\n➩ Number: {number}\n➩ Session: active',
+      expired: '⏱ Pairing code expired.\n➩ Tap below to get a new one.',
+      invalid: '✗ Invalid number.\n➩ Include country code, digits only.',
+      already: '⟡ This number is already paired.\n➩ Use delpair first to replace it.',
+      cooldown: '⏱ Please wait {seconds}s before requesting a new code.'
     },
     pairingFlow: {
-      askName:
-        '♡ Pairing — step 1 of 2\n\n' +
-        '➩ What should we call you?\n\n' +
-        'Send your name (e.g. Joshua)\n' +
-        'Or /cancel to abort',
-      askNumber:
-        '⟡ Nice to meet you, {name}\n\n' +
-        '➩ Now send your WhatsApp number\n' +
-        '➩ Include country code\n' +
-        '➩ Example: 255745123456\n\n' +
-        'Or /cancel to abort',
-      codeReady:
-        '♡ Pairing code for {name}\n\n' +
-        '`{code}`\n\n' +
-        '➩ Code refreshes automatically\n' +
-        '➩ Valid for {minutes} minutes\n\n' +
-        '➩ Open WhatsApp → Linked Devices\n' +
-        '➩ Link with phone number\n' +
-        '➩ Enter the code above',
-      cancelled:
-        '⟡ Pairing cancelled',
-      nameTooLong:
-        '✗ Name too long (max 30 characters)',
-      nameTooShort:
-        '✗ Name too short',
-      numberInvalid:
-        '✗ Invalid number\n' +
-        '➩ Include country code, digits only\n' +
-        '➩ Example: 255745123456'
+      askName:    '♡ Pairing — step 1 of 2\n\n➩ What should we call you?\n\nSend your name (e.g. Joshua)\nOr /cancel to abort',
+      askNumber:  '⟡ Nice to meet you, {name}\n\n➩ Now send your WhatsApp number\n➩ Include country code\n➩ Example: 255745123456\n\nOr /cancel to abort',
+      codeReady:  '♡ Pairing code for {name}\n\n`{code}`\n\n➩ Code refreshes automatically\n➩ Valid for {minutes} minutes\n\n➩ Open WhatsApp → Linked Devices\n➩ Link with phone number\n➩ Enter the code above',
+      cancelled:  '⟡ Pairing cancelled',
+      nameTooLong: '✗ Name too long (max 30 characters)',
+      nameTooShort: '✗ Name too short',
+      numberInvalid: '✗ Invalid number\n➩ Include country code, digits only\n➩ Example: 255745123456'
     },
     errors: {
-      generic:   '✗ Something went wrong.',
-      timeout:   '✗ Request timed out.',
+      generic: '✗ Something went wrong.',
+      timeout: '✗ Request timed out.',
       rateLimit: '⏱ Too many requests. Slow down.',
-      notFound:  '✗ Not found.',
+      notFound: '✗ Not found.',
       forbidden: '✗ You do not have permission.'
     },
-    welcome: {
-      whatsapp:
-        '♡ Welcome to MINIST4CK.\n' +
-        '➩ Type menu to see commands.'
-    },
+    welcome: { whatsapp: '♡ Welcome to MINIST4CK.\n➩ Type menu to see commands.' },
     prefix: {
       changed: '♡ Prefix updated to {prefix}',
-      reset:   '⟡ Prefix reset to default {prefix}',
+      reset: '⟡ Prefix reset to default {prefix}',
       invalid: '✗ That character is not allowed.',
-      usage:   '➩ Usage: setprefix <character>'
+      usage: '➩ Usage: setprefix <character>'
     },
     payment: {
-      enterNumber:
-        '♡ Premium — {amount} {currency}\n' +
-        '➩ Enter your payment number below\n' +
-        '➩ Example: 255745123456\n\n' +
-        'Reply cancel to abort',
-      pending:
-        '⟡ Check your phone\n' +
-        '➩ USSD popup will appear\n' +
-        '➩ Enter your PIN to confirm',
-      success:
-        '♡ Payment received\n' +
-        '➩ Amount: {amount} {currency}\n' +
-        '➩ Premium active for {days} days',
-      failed:
-        '✗ Payment failed\n' +
-        '➩ Try again with pay',
-      cancelled:
-        '⟡ Payment cancelled',
-      expired:
-        '⏱ Payment expired\n' +
-        '➩ Try again with pay',
-      timeout:
-        '⏱ No response in {minutes} minutes\n' +
-        '➩ Payment cancelled'
+      enterNumber: '♡ Premium — {amount} {currency}\n➩ Enter your payment number below\n➩ Example: 255745123456\n\nReply cancel to abort',
+      pending: '⟡ Check your phone\n➩ USSD popup will appear\n➩ Enter your PIN to confirm',
+      success: '♡ Payment received\n➩ Amount: {amount} {currency}\n➩ Premium active for {days} days',
+      failed: '✗ Payment failed\n➩ Try again with pay',
+      cancelled: '⟡ Payment cancelled',
+      expired: '⏱ Payment expired\n➩ Try again with pay',
+      timeout: '⏱ No response in {minutes} minutes\n➩ Payment cancelled'
     }
   },
 
@@ -454,35 +350,13 @@ module.exports = {
   },
 
   categoryOrder: [
-    'main',
-    'automation',
-    'downloader',
-    'search',
-    'information',
-    'ai-generator',
-    'ai-chart',
-    'converter',
-    'maker',
-    'tools',
-    'funny',
-    'game',
-    'group',
-    'profile',
-    'premium',
-    'misc',
-    'owner'
+    'main', 'automation', 'downloader', 'search', 'information',
+    'ai-generator', 'ai-chart', 'converter', 'maker', 'tools',
+    'funny', 'game', 'group', 'profile', 'premium', 'misc', 'owner'
   ],
 
-  admin: {
-    requireIpWhitelist:    false,
-    sessionLifetimeHours:  24,
-    auditLogRetentionDays: 30
-  },
+  admin: { requireIpWhitelist: false, sessionLifetimeHours: 24, auditLogRetentionDays: 30 },
 
-  ports: {
-    website:        3000,
-    sessionManager: 3001,
-    admin:          3002
-  }
+  ports: { website: 3000, sessionManager: 3001, admin: 3002 }
 
 };
